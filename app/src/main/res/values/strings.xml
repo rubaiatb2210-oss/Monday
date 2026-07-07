@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Monday</string>
+    <string name="app_tagline">Your Personal Executive Assistant</string>
+
+    <!-- Navigation -->
+    <string name="nav_dashboard">Dashboard</string>
+    <string name="nav_voice">Voice</string>
+    <string name="nav_assistant">Assistant</string>
+    <string name="nav_timeline">Timeline</string>
+    <string name="nav_reminders">Reminders</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_greeting_morning">Good morning</string>
+    <string name="dashboard_greeting_afternoon">Good afternoon</string>
+    <string name="dashboard_greeting_evening">Good evening</string>
+    <string name="dashboard_greeting_night">Good night</string>
+    <string name="dashboard_briefing_title">Daily Briefing</string>
+    <string name="dashboard_no_briefing">Nothing urgent right now. You\'re all caught up.</string>
+
+    <!-- Voice -->
+    <string name="voice_tap_to_speak">Tap to speak</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_processing">Processing…</string>
+    <string name="voice_permission_required">Microphone permission is required for voice commands</string>
+
+    <!-- Assistant -->
+    <string name="assistant_title">Assistant</string>
+    <string name="assistant_placeholder">Ask Monday anything…</string>
+    <string name="assistant_empty">Start a conversation with Monday</string>
+
+    <!-- Timeline -->
+    <string name="timeline_title">Timeline</string>
+    <string name="timeline_empty">No events yet. Monday is watching.</string>
+
+    <!-- Reminders -->
+    <string name="reminders_title">Reminders</string>
+    <string name="reminders_empty">No active reminders</string>
+    <string name="reminders_add">Add Reminder</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_ai_provider">AI Provider</string>
+    <string name="settings_api_key">API Key</string>
+    <string name="settings_notification_access">Notification Access</string>
+    <string name="settings_developer_mode">Developer Mode</string>
+    <string name="settings_voice_preferences">Voice Preferences</string>
+    <string name="settings_about">About Monday</string>
+
+    <!-- Developer Mode -->
+    <string name="devmode_title">Developer Mode</string>
+    <string name="devmode_events">Events</string>
+    <string name="devmode_metrics">Metrics</string>
+    <string name="devmode_pipeline">Pipeline</string>
+
+    <!-- Common -->
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_snooze">Snooze</string>
+    <string name="action_complete">Complete</string>
+</resources>
