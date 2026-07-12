@@ -13,6 +13,9 @@ class NotificationRepository @Inject constructor(
     fun getRecent(limit: Int = 100): Flow<List<NotificationEntity>> =
         notificationDao.getRecent(limit)
 
+    suspend fun getRecentList(limit: Int = 10): List<NotificationEntity> =
+        notificationDao.getRecentList(limit)
+
     fun getByMinScore(minScore: Float): Flow<List<NotificationEntity>> =
         notificationDao.getByMinScore(minScore)
 

@@ -48,13 +48,35 @@ class GeminiProvider @Inject constructor(
 
         val startTime = System.currentTimeMillis()
 
-        val requestBody = GeminiRequest(
-            contents = listOf(
+        val contentsList = mutableListOf<GeminiContent>()
+        
+        // Add conversation history
+        prompt.history.forEach { turn ->
+            contentsList.add(
                 GeminiContent(
-                    role = "user",
-                    parts = listOf(GeminiPart(text = "${prompt.systemPrompt}\n\n${prompt.userPrompt}"))
+                    role = turn.role,
+                    parts = listOf(GeminiPart(text = turn.text))
                 )
-            ),
+            )
+        }
+        
+        // Add current prompt
+        contentsList.add(
+            GeminiContent(
+                role = "user",
+                parts = listOf(GeminiPart(text = prompt.userPrompt))
+            )
+        )
+
+        // System prompt configuration
+        val systemInstruction = GeminiContent(
+            role = "system",
+            parts = listOf(GeminiPart(text = prompt.systemPrompt))
+        )
+
+        val requestBody = GeminiRequest(
+            systemInstruction = systemInstruction,
+            contents = contentsList,
             generationConfig = GeminiGenerationConfig(
                 temperature = 0.7f,
                 maxOutputTokens = 1024,
@@ -63,41 +85,56 @@ class GeminiProvider @Inject constructor(
         )
 
         val jsonBody = json.encodeToString(GeminiRequest.serializer(), requestBody)
-        val url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=$apiKey"
-
+        val models = listOf("gemini-3.5-flash", "gemini-3.1-flash", "gemini-2.5-flash")
+        
+        var lastError: Exception? = null
+        
         return withContext(Dispatchers.IO) {
-            val request = Request.Builder()
-                .url(url)
-                .post(jsonBody.toRequestBody("application/json".toMediaType()))
-                .build()
+            for (model in models) {
+                val url = "https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey"
+                val request = Request.Builder()
+                    .url(url)
+                    .post(jsonBody.toRequestBody("application/json".toMediaType()))
+                    .build()
 
-            val response = client.newCall(request).execute()
-            val body = response.body?.string()
-                ?: throw IllegalStateException("Empty response from Gemini")
+                try {
+                    val response = client.newCall(request).execute()
+                    val body = response.body?.string()
+                        ?: throw IllegalStateException("Empty response from Gemini")
 
-            if (!response.isSuccessful) {
-                throw IllegalStateException("Gemini API error ${response.code}: $body")
+                    if (!response.isSuccessful) {
+                        // If it's a 404 NOT_FOUND, the model might not exist for this key, so we try the next one
+                        if (response.code == 404) {
+                            lastError = IllegalStateException("Gemini API error ${response.code}: $body")
+                            continue
+                        }
+                        throw IllegalStateException("Gemini API error ${response.code}: $body")
+                    }
+
+                    val geminiResponse = json.decodeFromString(GeminiResponse.serializer(), body)
+                    val text = geminiResponse.candidates
+                        ?.firstOrNull()
+                        ?.content
+                        ?.parts
+                        ?.firstOrNull()
+                        ?.text
+                        ?: throw IllegalStateException("No text in Gemini response")
+
+                    val latency = System.currentTimeMillis() - startTime
+
+                    return@withContext AiResponse(
+                        text = text,
+                        provider = name,
+                        tier = tier,
+                        promptId = prompt.templateId,
+                        promptVersion = prompt.templateVersion,
+                        latencyMs = latency
+                    )
+                } catch (e: Exception) {
+                    lastError = e
+                }
             }
-
-            val geminiResponse = json.decodeFromString(GeminiResponse.serializer(), body)
-            val text = geminiResponse.candidates
-                ?.firstOrNull()
-                ?.content
-                ?.parts
-                ?.firstOrNull()
-                ?.text
-                ?: throw IllegalStateException("No text in Gemini response")
-
-            val latency = System.currentTimeMillis() - startTime
-
-            AiResponse(
-                text = text,
-                provider = name,
-                tier = tier,
-                promptId = prompt.templateId,
-                promptVersion = prompt.templateVersion,
-                latencyMs = latency
-            )
+            throw lastError ?: IllegalStateException("Failed to generate content with all Gemini models")
         }
     }
 
@@ -109,6 +146,7 @@ class GeminiProvider @Inject constructor(
 // Gemini API request/response models
 @Serializable
 data class GeminiRequest(
+    @SerialName("system_instruction") val systemInstruction: GeminiContent? = null,
     val contents: List<GeminiContent>,
     @SerialName("generationConfig") val generationConfig: GeminiGenerationConfig? = null
 )

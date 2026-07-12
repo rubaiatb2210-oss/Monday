@@ -2,6 +2,7 @@ package dev.monday.domain.skill
 
 import dev.monday.core.model.ContextSnapshot
 import dev.monday.data.repository.ReminderRepository
+import dev.monday.data.scheduler.SchedulerManager
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -15,7 +16,8 @@ import javax.inject.Inject
  *          "don't forget to submit the assignment"
  */
 class ReminderSkill @Inject constructor(
-    private val reminderRepository: ReminderRepository
+    private val reminderRepository: ReminderRepository,
+    private val schedulerManager: SchedulerManager
 ) : Skill {
     override val id = "reminder"
     override val name = "Reminder"
@@ -124,6 +126,8 @@ class ReminderSkill @Inject constructor(
 
         return try {
             val id = reminderRepository.create(title = title, triggerTime = triggerTime)
+            schedulerManager.scheduleExactReminder(id, triggerTime)
+            
             val remaining = triggerTime - System.currentTimeMillis()
             val minutesAway = TimeUnit.MILLISECONDS.toMinutes(remaining)
 

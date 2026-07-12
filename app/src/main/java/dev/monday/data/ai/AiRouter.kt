@@ -26,16 +26,19 @@ class AiRouter @Inject constructor(
      * Tries each provider in tier order until one succeeds.
      */
     suspend fun route(prompt: PromptPayload): AiResponse {
+        var lastException: Exception? = null
         for (provider in providers.sortedBy { it.tier }) {
             if (!provider.isAvailable()) continue
             return try {
                 provider.generate(prompt)
             } catch (e: Exception) {
+                lastException = e
                 // Try next provider
                 continue
             }
         }
-        throw IllegalStateException("No AI provider available. Please configure your API key in Settings.")
+        val errorMsg = lastException?.message ?: "Please configure your API key in Settings."
+        throw IllegalStateException("No AI provider available. $errorMsg")
     }
 
     /**

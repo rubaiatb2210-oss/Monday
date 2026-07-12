@@ -13,6 +13,8 @@ import dev.monday.domain.command.CommandPipeline
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import dev.monday.core.event.EventBus
+import dev.monday.core.event.MondayEvent
 
 data class VoiceExchange(
     val userText: String,
@@ -24,12 +26,14 @@ data class VoiceExchange(
 @HiltViewModel
 class VoiceViewModel @Inject constructor(
     private val speechManager: SpeechManager,
-    private val commandPipeline: CommandPipeline
+    private val commandPipeline: CommandPipeline,
+    private val eventBus: EventBus
 ) : ViewModel() {
 
     val listeningState: StateFlow<ListeningState> = speechManager.listeningState
     val speakingState: StateFlow<Boolean> = speechManager.speakingState
     val errorMessage: StateFlow<String?> = speechManager.errorMessage
+    val partialTranscription: StateFlow<String?> = speechManager.lastTranscription
 
     private val _exchanges = MutableStateFlow<List<VoiceExchange>>(emptyList())
     val exchanges: StateFlow<List<VoiceExchange>> = _exchanges.asStateFlow()
@@ -40,10 +44,10 @@ class VoiceViewModel @Inject constructor(
     init {
         speechManager.initialize()
 
-        // Listen for transcriptions
+        // Listen for final voice commands
         viewModelScope.launch {
-            speechManager.lastTranscription.filterNotNull().collect { text ->
-                processVoiceCommand(text)
+            eventBus.events.filterIsInstance<MondayEvent.VoiceCommand>().collect { event ->
+                processVoiceCommand(event.text)
             }
         }
     }

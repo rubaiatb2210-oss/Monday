@@ -63,4 +63,39 @@ class SchedulerManager @Inject constructor(
     fun cancelPeriodicSync() {
         WorkManager.getInstance(context).cancelUniqueWork(SYNC_WORK_NAME)
     }
+
+    /**
+     * Schedule an exact reminder using AlarmManager.
+     */
+    fun scheduleExactReminder(reminderId: Long, triggerTimeMillis: Long) {
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        val intent = android.content.Intent(context, dev.monday.worker.ReminderReceiver::class.java).apply {
+            putExtra("EXTRA_REMINDER_ID", reminderId)
+        }
+        val pendingIntent = android.app.PendingIntent.getBroadcast(
+            context,
+            reminderId.toInt(),
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+                alarmManager.setExactAndAllowWhileIdle(
+                    android.app.AlarmManager.RTC_WAKEUP,
+                    triggerTimeMillis,
+                    pendingIntent
+                )
+            } else {
+                alarmManager.setExact(
+                    android.app.AlarmManager.RTC_WAKEUP,
+                    triggerTimeMillis,
+                    pendingIntent
+                )
+            }
+        } catch (e: SecurityException) {
+            // Android 14+ requires SCHEDULE_EXACT_ALARM permission, fallback if missing
+            alarmManager.set(android.app.AlarmManager.RTC_WAKEUP, triggerTimeMillis, pendingIntent)
+        }
+    }
 }

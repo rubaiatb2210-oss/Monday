@@ -106,6 +106,7 @@ class SpeechManager @Inject constructor(
 
         _listeningState.value = ListeningState.LISTENING
         _errorMessage.value = null
+        _lastTranscription.value = null
         speechRecognizer?.startListening(intent)
     }
 
@@ -175,10 +176,12 @@ class SpeechManager @Inject constructor(
             val text = matches?.firstOrNull()
 
             if (text != null) {
-                _lastTranscription.value = text
+                _lastTranscription.value = null
                 scope.launch {
                     eventBus.emit(MondayEvent.VoiceCommand(text))
                 }
+            } else {
+                _lastTranscription.value = null
             }
             _listeningState.value = ListeningState.IDLE
         }

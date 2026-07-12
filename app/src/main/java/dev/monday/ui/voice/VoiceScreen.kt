@@ -136,6 +136,23 @@ fun VoiceScreen(
             textAlign = TextAlign.Center
         )
 
+        // Live transcription
+        val partialTranscription by viewModel.partialTranscription.collectAsState()
+        
+        partialTranscription?.let { text ->
+            if (text.isNotBlank() && listeningState == ListeningState.LISTENING) {
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MondayTextPrimary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 32.dp, vertical = 8.dp),
+                    textAlign = TextAlign.Center
+                )
+            }
+        }
+
         // Mic button
         Box(
             modifier = Modifier

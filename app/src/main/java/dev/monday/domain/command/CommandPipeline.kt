@@ -2,6 +2,8 @@ package dev.monday.domain.command
 
 import dev.monday.core.model.*
 import dev.monday.data.ai.AiRouter
+import dev.monday.data.repository.NotificationRepository
+import dev.monday.domain.prompt.ChatTurn
 import dev.monday.data.repository.CommandRepository
 import dev.monday.data.repository.MetricsRepository
 import dev.monday.domain.context.ContextEngine
@@ -27,7 +29,8 @@ class CommandPipeline @Inject constructor(
     private val aiRouter: AiRouter,
     private val promptRegistry: PromptRegistry,
     private val commandRepository: CommandRepository,
-    private val metricsRepository: MetricsRepository
+    private val metricsRepository: MetricsRepository,
+    private val notificationRepository: NotificationRepository
 ) {
     /**
      * Process a command through the full pipeline.
@@ -142,10 +145,24 @@ class CommandPipeline @Inject constructor(
         )
 
         return try {
+            val recentNotifications = notificationRepository.getRecentList(15)
+            val notificationContext = if (recentNotifications.isEmpty()) "" else {
+                "\n\nRecent Notifications:\n" + recentNotifications.joinToString("\n") { "[${it.packageName}] ${it.title}: ${it.text}" }
+            }
+            val fullContext = contextEngine.toPromptContext() + notificationContext
+
+            val recentCommands = commandRepository.getRecentList(6)
+            val history = recentCommands.reversed().flatMap {
+                listOf(
+                    ChatTurn("user", it.inputText),
+                    ChatTurn("model", it.resultMessage ?: "")
+                )
+            }
+
             val prompt = promptRegistry.build("conversation", mapOf(
-                "context" to contextEngine.toPromptContext(),
+                "context" to fullContext,
                 "input" to parseResult.originalText
-            ))
+            )).copy(history = history)
 
             val aiResponse = aiRouter.route(prompt)
             metricsRepository.increment(MetricsRepository.METRIC_AI_CALLS)
@@ -184,13 +201,27 @@ class CommandPipeline @Inject constructor(
         startTime: Long
     ): CommandResult {
         return try {
+            val recentNotifications = notificationRepository.getRecentList(15)
+            val notificationContext = if (recentNotifications.isEmpty()) "" else {
+                "\n\nRecent Notifications:\n" + recentNotifications.joinToString("\n") { "[${it.packageName}] ${it.title}: ${it.text}" }
+            }
+            val fullContext = contextEngine.toPromptContext() + notificationContext
+
+            val recentCommands = commandRepository.getRecentList(6)
+            val history = recentCommands.reversed().flatMap {
+                listOf(
+                    ChatTurn("user", it.inputText),
+                    ChatTurn("model", it.resultMessage ?: "")
+                )
+            }
+
             val variables = mutableMapOf(
-                "context" to contextEngine.toPromptContext(),
+                "context" to fullContext,
                 "input" to skillResult.prompt
             )
             variables.putAll(skillResult.context)
 
-            val prompt = promptRegistry.build("conversation", variables)
+            val prompt = promptRegistry.build("conversation", variables).copy(history = history)
             val aiResponse = aiRouter.route(prompt)
             metricsRepository.increment(MetricsRepository.METRIC_AI_CALLS)
             metricsRepository.increment(MetricsRepository.METRIC_AI_HITS)

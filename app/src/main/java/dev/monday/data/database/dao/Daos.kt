@@ -12,6 +12,9 @@ interface NotificationDao {
     @Query("SELECT * FROM notifications ORDER BY timestamp DESC LIMIT :limit")
     fun getRecent(limit: Int = 100): Flow<List<NotificationEntity>>
 
+    @Query("SELECT * FROM notifications ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getRecentList(limit: Int = 10): List<NotificationEntity>
+
     @Query("SELECT * FROM notifications WHERE priorityScore >= :minScore ORDER BY timestamp DESC")
     fun getByMinScore(minScore: Float): Flow<List<NotificationEntity>>
 
@@ -80,6 +83,9 @@ interface CommandHistoryDao {
 
     @Query("SELECT * FROM command_history ORDER BY timestamp DESC LIMIT :limit")
     fun getRecent(limit: Int = 50): Flow<List<CommandHistoryEntity>>
+
+    @Query("SELECT * FROM command_history ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getRecentList(limit: Int = 10): List<CommandHistoryEntity>
 
     @Query("SELECT * FROM command_history WHERE inputSource = :source ORDER BY timestamp DESC LIMIT :limit")
     fun getBySource(source: String, limit: Int = 20): Flow<List<CommandHistoryEntity>>

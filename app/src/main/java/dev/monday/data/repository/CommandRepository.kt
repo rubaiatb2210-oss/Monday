@@ -16,6 +16,9 @@ class CommandRepository @Inject constructor(
     fun getRecent(limit: Int = 50): Flow<List<CommandHistoryEntity>> =
         commandHistoryDao.getRecent(limit)
 
+    suspend fun getRecentList(limit: Int = 10): List<CommandHistoryEntity> =
+        commandHistoryDao.getRecentList(limit)
+
     fun getBySource(source: InputSource, limit: Int = 20): Flow<List<CommandHistoryEntity>> =
         commandHistoryDao.getBySource(source.name, limit)
 
